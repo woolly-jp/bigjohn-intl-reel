@@ -66,6 +66,14 @@ def pick(path, text):
     return CJK if any(ord(ch) > 0x24F and not 0x2000 <= ord(ch) <= 0x206F for ch in str(text)) else path
 
 
+TEXT_SCALE = 0.85   # 動画の文字の大きさ(1.0 = 最初の大きさ。0.85 = ひと回り小さく)。ロゴ、行の間隔、下地も一緒に変わる
+
+
+def k(n):
+    """文字まわりの大きさ・間隔を TEXT_SCALE に合わせる"""
+    return round(n * TEXT_SCALE)
+
+
 def ease(t):
     """ゆっくり始まり、ゆっくり終わる"""
     t = max(0.0, min(1.0, t))
@@ -154,7 +162,7 @@ def text_style(layer, base, y0, y1, matted=False):
     """文字は白。写真に重なるときは半透明のグレーの下地を敷く(y0〜y1 が文字の範囲)。
     写真の下のグレーの地に置くとき(matted)は、下地はいらない"""
     if not matted:
-        layer = plate(layer, y0 - 64, y1 + 56, PLATE_ALPHA)
+        layer = plate(layer, y0 - k(64), y1 + k(56), PLATE_ALPHA)
     return layer, WHITE + (255,), WHITE + (232,)
 
 
@@ -181,47 +189,47 @@ def overlay(scene, cfg, base=None, matted=False):
     kind = scene.get("overlay")
     if kind == "copy":      # 大きめのひとこと + 小さく添える2〜3行
         lines = clean_lines(scene.get("lines"))
-        top = TEXT_Y - 44 * len(lines)          # 行が増えるぶん、全体を上へ
-        bottom = top + 100 + (36 + 58 * len(lines) if lines else 0)
+        top = TEXT_Y - k(44) * len(lines)          # 行が増えるぶん、全体を上へ
+        bottom = top + k(100) + (k(36) + k(58) * len(lines) if lines else 0)
         layer, ink, sub = text_style(layer, base, top, bottom, matted)
         d = ImageDraw.Draw(layer)
-        f = fit_font(d, scene["text"], SERIF, 68, W - 200, spacing=2)
-        spaced(d, (W / 2, top + 14), scene["text"], f, ink, spacing=2)
+        f = fit_font(d, scene["text"], SERIF, k(68), W - 200, spacing=2)
+        spaced(d, (W / 2, top + k(14)), scene["text"], f, ink, spacing=2)
         for i, line in enumerate(lines):
-            f = fit_font(d, line, SANS, 35, W - 220, spacing=2)
-            spaced(d, (W / 2, top + 132 + 58 * i), line, f, sub, spacing=2)
+            f = fit_font(d, line, SANS, k(35), W - 220, spacing=2)
+            spaced(d, (W / 2, top + k(132) + k(58) * i), line, f, sub, spacing=2)
     elif kind == "caption":  # 小さめの商品名
-        top = TEXT_Y - 40                        # ロゴのぶん、少し上から
-        bottom = top + 214 + (70 if scene.get("sub") else 0)
+        top = TEXT_Y - k(40)                        # ロゴのぶん、少し上から
+        bottom = top + k(214) + (k(70) if scene.get("sub") else 0)
         layer, ink, sub = text_style(layer, base, top, bottom, matted)
         d = ImageDraw.Draw(layer)
-        if not put_logo(layer, top, 84):
-            spaced(d, (W / 2, top + 30), cfg.get("brand", "BIG JOHN"), font(SERIF, 28), sub, spacing=14)
-        f = fit_font(d, scene["text"], SERIF, 50, W - 200, spacing=2)
-        spaced(d, (W / 2, top + 118), scene["text"], f, ink, spacing=2)
+        if not put_logo(layer, top, k(84)):
+            spaced(d, (W / 2, top + k(30)), cfg.get("brand", "BIG JOHN"), font(SERIF, k(28)), sub, spacing=14)
+        f = fit_font(d, scene["text"], SERIF, k(50), W - 200, spacing=2)
+        spaced(d, (W / 2, top + k(118)), scene["text"], f, ink, spacing=2)
         if scene.get("sub"):  # 商品名の下に添える、気の利いたひとこと
-            f = fit_font(d, scene["sub"], SANS, 36, W - 240, spacing=2)
-            spaced(d, (W / 2, top + 204), scene["sub"], f, sub, spacing=2)
+            f = fit_font(d, scene["sub"], SANS, k(36), W - 240, spacing=2)
+            spaced(d, (W / 2, top + k(204)), scene["sub"], f, sub, spacing=2)
     elif kind == "panel":    # 商品名・色・価格。写真は画面いっぱい、文字のうしろに半透明のグレーの下地
         top = PANEL_TOP - 40                     # ロゴのぶん、少し上から
-        y_end = top + 284 + (72 if cfg.get("variant") else 0) + (92 if cfg.get("price") else 0) \
-            + (64 if cfg.get("tagline") else 0)
-        layer = plate(layer, top + 6, y_end + 34, PLATE_ALPHA)
+        y_end = top + k(284) + (k(72) if cfg.get("variant") else 0) + (k(92) if cfg.get("price") else 0) \
+            + (k(64) if cfg.get("tagline") else 0)
+        layer = plate(layer, top + k(6), y_end + k(34), PLATE_ALPHA)
         d = ImageDraw.Draw(layer)
         soft = WHITE + (228,)
-        if not put_logo(layer, top + 50, 100):
-            spaced(d, (W / 2, top + 84), cfg.get("brand", "BIG JOHN"), font(SERIF, 30), soft, spacing=14)
-        f = fit_font(d, cfg["name"], SERIF, 58, W - 200, spacing=2)
-        spaced(d, (W / 2, top + 188), cfg["name"], f, WHITE + (255,), spacing=2)
-        y = top + 284
+        if not put_logo(layer, top + k(50), k(100)):
+            spaced(d, (W / 2, top + k(84)), cfg.get("brand", "BIG JOHN"), font(SERIF, k(30)), soft, spacing=14)
+        f = fit_font(d, cfg["name"], SERIF, k(58), W - 200, spacing=2)
+        spaced(d, (W / 2, top + k(188)), cfg["name"], f, WHITE + (255,), spacing=2)
+        y = top + k(284)
         if cfg.get("variant"):
-            spaced(d, (W / 2, y), cfg["variant"], fit_font(d, cfg["variant"], SANS, 34, W - 220, spacing=4), soft, spacing=4)
-            y += 72
+            spaced(d, (W / 2, y), cfg["variant"], fit_font(d, cfg["variant"], SANS, k(34), W - 220, spacing=4), soft, spacing=4)
+            y += k(72)
         if cfg.get("price"):
-            spaced(d, (W / 2, y), cfg["price"], font(SERIF, 50), WHITE + (255,), spacing=3)
-            y += 92
+            spaced(d, (W / 2, y), cfg["price"], font(SERIF, k(50)), WHITE + (255,), spacing=3)
+            y += k(92)
         if cfg.get("tagline"):  # 価格の下に添えるひとこと
-            f = fit_font(d, cfg["tagline"], SANS, 36, W - 240, spacing=2)
+            f = fit_font(d, cfg["tagline"], SANS, k(36), W - 240, spacing=2)
             spaced(d, (W / 2, y), cfg["tagline"], f, soft, spacing=2)
     if scene.get("ai_label"):
         ai_label(ImageDraw.Draw(layer))
@@ -233,18 +241,18 @@ def card(cfg):
     img = Image.new("RGB", (W, H), GRAY)
     d = ImageDraw.Draw(img)
     lines = cfg.get("notice_lines", [])
-    block = 150 + 110 + 84 * len(lines)
+    block = k(150) + k(110) + k(84) * len(lines)
     y = (H - block) / 2 - 40
-    if not put_logo(img, y - 70, 130):
-        spaced(d, (W / 2, y), cfg.get("brand", "BIG JOHN"), font(SERIF, 32), (232, 232, 232), spacing=14)
+    if not put_logo(img, y - k(70), k(130)):
+        spaced(d, (W / 2, y), cfg.get("brand", "BIG JOHN"), font(SERIF, k(32)), (232, 232, 232), spacing=14)
     title = cfg.get("notice_title", "")
-    f = fit_font(d, title, SERIF, 84, W - 180, spacing=2)
-    spaced(d, (W / 2, y + 130), title, f, WHITE, spacing=2)
-    yy = y + 290
+    f = fit_font(d, title, SERIF, k(84), W - 180, spacing=2)
+    spaced(d, (W / 2, y + k(130)), title, f, WHITE, spacing=2)
+    yy = y + k(290)
     for line in lines:
-        f = fit_font(d, line, SANS, 42, W - 200, spacing=1)
+        f = fit_font(d, line, SANS, k(42), W - 200, spacing=1)
         spaced(d, (W / 2, yy), line, f, WHITE, spacing=1)
-        yy += 84
+        yy += k(84)
     return img
 
 
