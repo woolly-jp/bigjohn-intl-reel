@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root { --kinari:#fcfcfc; --charcoal:#333333; --gray:#7d7d7d; --line:#dedede; --warn:#b3402f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--kinari); color:var(--charcoal);
+         font-family:"Hiragino Sans","Noto Sans JP",sans-serif; line-height:1.7; }
+  main { max-width:460px; margin:0 auto; padding:20px 16px 48px; }
+  h1 { font-weight:500; font-size:20px;
+       letter-spacing:.08em; margin:4px 0 2px; text-align:center; }
+  .sub { text-align:center; color:var(--gray); font-size:13px; margin-bottom:16px; }
+  video { width:100%; aspect-ratio:9/16; background:#1c1c1c; border-radius:10px; display:block; }
+  .hint { font-size:12px; color:var(--gray); margin:6px 0 18px; }
+  label { display:block; font-size:13px; color:var(--gray); margin:0 0 6px; }
+  textarea { width:100%; min-height:230px; padding:12px; border:1px solid var(--line); border-radius:8px;
+             font:inherit; font-size:15px; background:#ffffff; color:inherit; }
+  ul { margin:14px 0 0; padding:12px 14px 12px 30px; background:#ffffff; border:1px solid var(--line);
+       border-radius:8px; font-size:13px; }
+  .memo { margin-top:12px; padding:10px 12px; border-left:3px solid var(--warn); background:#fbefec;
+          font-size:13px; color:var(--warn); }
+  .btns { display:flex; gap:10px; margin-top:20px; }
+  button { flex:1; padding:15px 8px; border-radius:4px; font:inherit; font-size:16px; cursor:pointer; }
+  #post { flex:2; background:#000000; color:#ffffff; border:1px solid #000000; }
+  #skip { background:transparent; color:var(--charcoal); border:1px solid var(--gray); }
+  button:disabled { opacity:.45; cursor:default; }
+  #msg { margin-top:16px; text-align:center; font-size:15px; min-height:1.7em; }
+  #msg a { color:inherit; }
+  .ja { margin-top:10px; padding:10px 12px; background:#f3f3f1; border-radius:8px; font-size:13px; white-space:pre-wrap; }
+  .ja b { display:block; font-weight:500; color:var(--gray); margin-bottom:4px; }
+  .strip { display:flex; gap:8px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:4px; }
+  .strip img { flex:0 0 82%; aspect-ratio:4/5; object-fit:cover; border-radius:10px; background:#1c1c1c; scroll-snap-align:start; }
+  .hide { display:none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>投稿の確認</h1>
+  <div class="sub" id="sub">読み込み中…</div>
+  <div id="body" class="hide">
+    <video id="video" controls playsinline loop></video>
+    <div id="strip" class="strip hide"></div>
+    <div class="hint" id="hint">動画が出ないときは、数分待ってから開き直してください。</div>
+    <label for="caption">キャプション(英語で投稿されます。ここで直せます)</label>
+    <textarea id="caption"></textarea>
+    <div id="ja" class="ja hide"><b>日本語訳(確認用。投稿はされません。AIが作った元の文の訳です)</b><span id="jatext"></span></div>
+    <div id="memo" class="memo hide"></div>
+    <ul>
+      <li id="ck-reel">動画の最後が実物の商品写真で終わっている</li>
+      <li id="ck-car" class="hide">写真の切れ方(4:5)が不自然でない。横にめくって全部見る</li>
+      <li>商品名、英語の文字に誤りや切れがない</li>
+      <li>色落ちや色味が、実物と違って見えない</li>
+      <li>機能や効果、環境への良さを言い切っていない(waterproof、sustainable など)</li>
+      <li>「best」「No.1」など根拠のない最上級がない</li>
+      <li>色落ちや経年変化を、商品ページにない内容で書いていない</li>
+      <li>季節に合っていて、在庫のある商品である</li>
+    </ul>
+    <div class="btns">
+      <button id="skip">見送る</button>
+      <button id="post">投稿する</button>
+    </div>
+  </div>
+  <div id="msg"></div>
+</main>
+<script>
+  var token = <?!= JSON.stringify(token) ?>;
+  var $ = function (id) { return document.getElementById(id); };
+  function lock(on) { $('post').disabled = on; $('skip').disabled = on; $('caption').disabled = on; }
+  function say(text, link) {
+    $('msg').textContent = text;
+    if (link && /^https:\/\//.test(link)) {
+      var a = document.createElement('a'); a.href = link; a.textContent = 'Instagramで見る'; a.target = '_blank';
+      $('msg').appendChild(document.createElement('br')); $('msg').appendChild(a);
+    }
+  }
+  function show(d) {
+    if (d.state === 'なし') { $('sub').textContent = 'この投稿候補は見つかりませんでした'; return; }
+    $('sub').textContent = (d.format || 'リール') + ' / ' + d.pillar + ' / ' + d.product;
+    $('body').classList.remove('hide');
+    if (d.format === 'カルーセル') {
+      $('video').classList.add('hide'); $('strip').classList.remove('hide');
+      $('ck-reel').classList.add('hide'); $('ck-car').classList.remove('hide');
+      $('hint').textContent = '写真が出ないときは、数分待ってから開き直してください。横にめくれます。';
+      (d.images || []).forEach(function (u) { var im = document.createElement('img'); im.src = u; im.alt = ''; $('strip').appendChild(im); });
+    } else if (d.video) $('video').src = d.video;
+    $('caption').value = d.caption || '';
+    if (d.caption_ja) { $('jatext').textContent = d.caption_ja; $('ja').classList.remove('hide'); }
+    if (d.memo) { $('memo').textContent = d.memo; $('memo').classList.remove('hide'); }
+    if (d.state !== '確認待ち') {
+      lock(true);
+      say({ '投稿済み': '投稿済みです', '見送り': '見送り済みです', '投稿中': '投稿中です',
+            '処理待ち': 'Instagram側で処理中です', '作成中': '準備しています', '動画待ち': '準備しています',
+            '失敗': '動画を作れませんでした' }[d.state] || d.state, d.permalink);
+    }
+  }
+  function done(r) { say(r.message, r.permalink); if (!r.ok) lock(false); }
+  function fail(e) { say('うまくいきませんでした: ' + (e && e.message || e)); lock(false); }
+  $('post').onclick = function () {
+    lock(true); say('投稿しています… このまま1〜2分お待ちください');
+    google.script.run.withSuccessHandler(done).withFailureHandler(fail).publish(token, $('caption').value);
+  };
+  $('skip').onclick = function () {
+    lock(true); say('見送っています…');
+    google.script.run.withSuccessHandler(done).withFailureHandler(fail).skip(token);
+  };
+  google.script.run.withSuccessHandler(show).withFailureHandler(fail).getReview(token);
+</script>
+</body>
+</html>
