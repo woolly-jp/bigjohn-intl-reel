@@ -41,7 +41,8 @@ def call(action, **params):
 
 
 def report(payload):
-    body = json.dumps(dict(payload, key=KEY)).encode("utf-8")
+    # base: いまつながっている Google 側のURL。メールの確認画面リンクは、このURLで作られる
+    body = json.dumps(dict(payload, key=KEY, base=URL)).encode("utf-8")
     req = urllib.request.Request(URL, data=body, headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=120) as r:
         return r.read().decode("utf-8")
